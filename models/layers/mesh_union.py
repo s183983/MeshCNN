@@ -25,7 +25,8 @@ class MeshUnion:
         idxs = self.sparse_groups._indices()
 
 
-        if type(source) in [np.int64, int] and type(target) in [np.int64, int]:
+        if (type(source) in [np.int64, int] and type(target) in [np.int64, int]) or\
+                (type(source) in [np.int32, int] and type(target) in [np.int32, int]):
 
             source_mask = idxs[0,:] == source
             source_columns = idxs[1, source_mask]
@@ -51,6 +52,8 @@ class MeshUnion:
             self.sparse_groups = torch.sparse.FloatTensor(all_idxs, all_values).coalesce()
 
         else:
+            print(type(source))
+            print(type(target))
             raise ValueError()
 
 
@@ -70,7 +73,7 @@ class MeshUnion:
         #if not self.sparse_groups.is_coalesced():
         #    self.sparse_groups = self.sparse_groups.coalesce()
 
-        where_mask = torch.from_numpy(np.argwhere(tensor_mask.numpy()).squeeze()).to("cuda")
+        where_mask = torch.from_numpy(np.argwhere(tensor_mask.numpy()).squeeze()).to(self.sparse_groups.device)
         value_mask = isin(self.sparse_groups._indices()[0, :], where_mask)
 
         new_cols = self.sparse_groups._indices()[1,value_mask]
@@ -115,7 +118,7 @@ class MeshUnion:
 
         #if not self.sparse_groups.is_coalesced():
         #    self.sparse_groups = self.sparse_groups.coalesce()
-        where_mask = torch.from_numpy(np.argwhere(mask).squeeze()).to("cuda")
+        where_mask = torch.from_numpy(np.argwhere(mask).squeeze()).to(self.sparse_groups.device)
         value_mask = isin(self.sparse_groups._indices()[0,:], where_mask)
 
         values = self.sparse_groups._values()[value_mask]

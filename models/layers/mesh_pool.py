@@ -50,7 +50,12 @@ class MeshPool(nn.Module):
         self.to_merge_edges = []
         #self.to_remove_edges = []
         while mesh.edges_count > self.__out_target:
-            value, edge_id = heappop(queue)
+            try:
+                value, edge_id = heappop(queue)
+            except:
+                print(self.__out_target)
+                print(mesh.edges_count)
+                raise
             edge_id = int(edge_id)
             if mask[edge_id]:
                 self.__pool_edge(mesh, edge_id, mask, edge_groups)
@@ -144,6 +149,7 @@ class MeshPool(nn.Module):
             self.to_merge_edges.append((key_b, edge_id))
             self.to_merge_edges.append((key_a, update_key_a))
             self.to_merge_edges.append((middle_edge, update_key_a))
+            self.to_merge_edges.append((key_b, update_key_b))
             self.to_merge_edges.append((middle_edge, update_key_b))
             return [key_a, key_b, middle_edge]
 
@@ -208,6 +214,8 @@ class MeshPool(nn.Module):
 
     @staticmethod
     def __union_multiple_groups(mesh, edge_groups, source_target):
+        if len(source_target) == 0:
+            return
         combined = [list(t) for t in zip(*source_target)]
         edge_groups.union(combined[0], combined[1])
         for s, t in source_target:

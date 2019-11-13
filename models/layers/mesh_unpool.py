@@ -53,7 +53,7 @@ class MeshUnpool(nn.Module):
 
 
         groups = [self.sparse_pad_groups(mesh, edges) for mesh in groups]
-        indices = torch.cat([torch.cat([torch.ones((1, g.indices().shape[-1]), dtype=torch.int64).to("cuda") * idx, g.indices()], dim=0) for
+        indices = torch.cat([torch.cat([torch.ones((1, g.indices().shape[-1]), dtype=torch.int64).to(features.device) * idx, g.indices()], dim=0) for
                                                             idx, g in enumerate(groups)], dim=1)
         values = torch.cat([g.values() for g in groups], dim=0)
 
