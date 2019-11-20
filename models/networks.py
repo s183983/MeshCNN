@@ -51,7 +51,7 @@ def get_scheduler(optimizer, opt):
     if opt.lr_policy == 'lambda':
         def lambda_rule(epoch):
             #lr_l = 1.0 - max(0, epoch + 1 + opt.epoch_count - opt.niter) / float(opt.niter_decay + 1)
-            return 0.85 ** epoch
+            return 0.88 ** epoch
         scheduler = lr_scheduler.LambdaLR(optimizer, lr_lambda=lambda_rule)
     elif opt.lr_policy == 'step':
         scheduler = lr_scheduler.StepLR(optimizer, step_size=opt.lr_decay_iters, gamma=0.1)
@@ -115,7 +115,7 @@ def define_loss(opt):
         loss = torch.nn.CrossEntropyLoss()
     elif opt.dataset_mode == 'segmentation':
         #loss = torch.nn.CrossEntropyLoss(ignore_index=-1)
-        CLASS_WEIGHTS = torch.Tensor([1.02259879, 0.53538559, 6.48144009])
+        CLASS_WEIGHTS = torch.Tensor([2.11694264, 0.42311726, 6.08977656])
         loss = torch.nn.CrossEntropyLoss(weight=CLASS_WEIGHTS, ignore_index=-1)
     return loss
 
