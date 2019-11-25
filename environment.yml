@@ -11,3 +11,5 @@ dependencies:
   - pip 
   - pip:
     - git+https://github.com/lanpa/tensorboardX.git
+    - torch-scatter
+    - torch-sparse
