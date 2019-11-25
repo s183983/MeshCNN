@@ -2,12 +2,14 @@ name: meshcnn
 channels:
   - pytorch
   - defaults
+  - conda-forge
 dependencies:
   - python=3.6.8
   - cython=0.27.3
   - pytorch=1.2.0
   - numpy=1.15.0
   - matplotlib=3.0.3
+  - tensorboard=1.14.0
   - pip 
   - pip:
     - git+https://github.com/lanpa/tensorboardX.git
