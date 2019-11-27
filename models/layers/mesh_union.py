@@ -58,8 +58,7 @@ class MeshUnion:
 
                 source_target_idxs = torch.stack([target_rows, source_columns])
 
-
-                values = self.sparse_groups._values()[source_columns]
+                values = all_values[source_columns]
                 all_values = torch.cat([all_values, values], dim=0)
                 idxs = torch.cat([idxs, source_target_idxs], dim=1)
 
