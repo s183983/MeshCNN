@@ -39,30 +39,33 @@ class MeshUnion:
 
         elif type(source) == list and type(target) == list:
             source, target = torch.LongTensor(source).to(self.sparse_groups.device), torch.LongTensor(target).to(self.sparse_groups.device)
+            source.requires_grad = False
+            target.requires_grad = False
 
-            good_idxs = np.argwhere(np.logical_not(np.isin(source.cpu(), target.cpu()))).ravel()
-            mask = torch.ones(len(source), dtype=torch.bool, device=self.sparse_groups.device)
+            MAX_BUFFER_SIZE = 200
+
+            good_idxs = np.argwhere(np.logical_not(np.isin(source.cpu(), target.cpu()))).ravel()[:MAX_BUFFER_SIZE]
+            mask = torch.ones(len(source), dtype=torch.bool, device=self.sparse_groups.device, requires_grad=False)
 
             all_values = self.sparse_groups._values()
             idxs = self.sparse_groups._indices()
 
             while len(good_idxs) > 0:
-                tmp = (idxs[0, :].unsqueeze(-1) - source[good_idxs] == 0).nonzero()
+                tmp = (idxs[0, :].unsqueeze(-1) == source[good_idxs]).nonzero()
 
                 source_columns = idxs[1, tmp[:, 0]]
                 target_rows = target[good_idxs][tmp[:,1]]
 
                 source_target_idxs = torch.stack([target_rows, source_columns])
 
-
-                values = self.sparse_groups._values()[source_columns]
+                values = all_values[source_columns]
                 all_values = torch.cat([all_values, values], dim=0)
                 idxs = torch.cat([idxs, source_target_idxs], dim=1)
 
                 mask[good_idxs] = False
                 source, target = source[mask], target[mask]
-                good_idxs = np.argwhere(np.logical_not(np.isin(source.cpu(), target.cpu()))).ravel()#[i for i, t in enumerate(source) if t not in target]
-                mask = torch.ones(len(source), dtype=torch.bool)
+                good_idxs = np.argwhere(np.logical_not(np.isin(source.cpu(), target.cpu()))).ravel()[:MAX_BUFFER_SIZE]
+                mask = torch.ones(len(source), dtype=torch.bool, requires_grad=False)
 
             self.sparse_groups = torch.sparse.FloatTensor(idxs, all_values).coalesce()
 
