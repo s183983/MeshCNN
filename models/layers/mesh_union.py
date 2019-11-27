@@ -16,10 +16,8 @@ class MeshUnion:
         self.sparse_groups = torch.sparse.FloatTensor(torch.stack([idxs, idxs]), torch.ones(n, device=device)).to(device)
         #self.groups = torch.eye(n).to(device)
 
-    def union(self, source, target):
-        #if not self.sparse_groups.is_coalesced():
-        #    self.sparse_groups = self.sparse_groups.coalesce()
 
+    def union(self, source, target):
         # All of this mess is just adding two rows
         # equivalent to self.groups[target, :] += self.groups[source, :]
         idxs = self.sparse_groups._indices()
@@ -40,16 +38,33 @@ class MeshUnion:
             self.sparse_groups = torch.sparse.FloatTensor(all_idxs, all_values)#.coalesce()
 
         elif type(source) == list and type(target) == list:
-            idxs = idxs.cpu().numpy()
-            source_mask = np.isin(idxs[0,:], source)
-            source_columns = torch.from_numpy(idxs[1, source_mask])
-            target_rows = torch.from_numpy(idxs[0,:][source_mask])
-            source_target_idxs = torch.stack([target_rows, source_columns]).to(self.sparse_groups.device)
+            source, target = torch.LongTensor(source).to(self.sparse_groups.device), torch.LongTensor(target).to(self.sparse_groups.device)
 
-            values = self.sparse_groups._values()[source_mask]
-            all_values = torch.cat([self.sparse_groups._values(), values], dim=0)
-            all_idxs = torch.cat([self.sparse_groups._indices(), source_target_idxs], dim=1)
-            self.sparse_groups = torch.sparse.FloatTensor(all_idxs, all_values).coalesce()
+            good_idxs = np.argwhere(np.logical_not(np.isin(source.cpu(), target.cpu()))).ravel()
+            mask = torch.ones(len(source), dtype=torch.bool, device=self.sparse_groups.device)
+
+            all_values = self.sparse_groups._values()
+            idxs = self.sparse_groups._indices()
+
+            while len(good_idxs) > 0:
+                tmp = (idxs[0, :].unsqueeze(-1) - source[good_idxs] == 0).nonzero()
+
+                source_columns = idxs[1, tmp[:, 0]]
+                target_rows = target[good_idxs][tmp[:,1]]
+
+                source_target_idxs = torch.stack([target_rows, source_columns])
+
+
+                values = self.sparse_groups._values()[source_columns]
+                all_values = torch.cat([all_values, values], dim=0)
+                idxs = torch.cat([idxs, source_target_idxs], dim=1)
+
+                mask[good_idxs] = False
+                source, target = source[mask], target[mask]
+                good_idxs = np.argwhere(np.logical_not(np.isin(source.cpu(), target.cpu()))).ravel()#[i for i, t in enumerate(source) if t not in target]
+                mask = torch.ones(len(source), dtype=torch.bool)
+
+            self.sparse_groups = torch.sparse.FloatTensor(idxs, all_values).coalesce()
 
         else:
             print(type(source))
