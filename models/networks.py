@@ -110,13 +110,15 @@ def define_classifier(input_nc, ncf, ninput_edges, nclasses, opt, gpu_ids, arch,
         raise NotImplementedError('Encoder model name [%s] is not recognized' % arch)
     return init_net(net, init_type, init_gain, gpu_ids)
 
+
 def define_loss(opt):
     if opt.dataset_mode == 'classification':
         loss = torch.nn.CrossEntropyLoss()
     elif opt.dataset_mode == 'segmentation':
-        #loss = torch.nn.CrossEntropyLoss(ignore_index=-1)
-        CLASS_WEIGHTS = torch.Tensor([2.11694264, 0.42311726, 6.08977656])
-        loss = torch.nn.CrossEntropyLoss(weight=CLASS_WEIGHTS, ignore_index=-1)
+        loss = torch.nn.CrossEntropyLoss(ignore_index=-1)
+        #CLASS_WEIGHTS = torch.Tensor([1.27016558, 0.26337189, 6.43169061, 8.37435518, 7.09741871])
+        #CLASS_WEIGHTS = torch.Tensor([2.11694264, 0.42311726, 6.08977656])
+        #loss = torch.nn.CrossEntropyLoss(weight=CLASS_WEIGHTS, ignore_index=-1)
     return loss
 
 ##############################################################################

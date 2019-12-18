@@ -2,6 +2,8 @@ import torch
 from . import networks
 from os.path import join
 from util.util import seg_accuracy, print_network
+import numpy as np
+import os
 
 
 class ClassifierModel:
@@ -111,6 +113,9 @@ class ClassifierModel:
             # compute number of correct
             pred_class = out.data.max(1)[1]
             label_class = self.labels
+            for i, m in enumerate(self.mesh):
+                filepath = os.path.join(m.export_folder, m.filename[:-4])
+                np.save(filepath, out.data[i,:,:].cpu().numpy())
             self.export_segmentation(pred_class.cpu())
             correct = self.get_accuracy(pred_class, label_class)
         return correct, len(label_class)
