@@ -9,7 +9,8 @@ Created on Mon Feb  8 10:27:02 2021
 import numpy as np
 import vtk
 from vtk.numpy_interface import dataset_adapter as dsa
-from models.layers.mesh_prepare import *
+from models.layers.mesh_prepare import (remove_non_manifolds,augmentation,
+build_gemm,post_augmentation,extract_features)
 from matplotlib.cbook import flatten
 import os
         
@@ -26,7 +27,7 @@ def Remvoe_zero_area(mesh, faces, face_labels):
 
 
 for f_name in os.listdir('datasets/LAA_segmentation/'):
-    if f_name.endswith('.vtk'): #and int(f_name.split('.')[0])==236:
+    if f_name.endswith('.vtk') and int(f_name.split('.')[0])==60:
         filename = 'datasets/LAA_segmentation/' + f_name
         
         reader = vtk.vtkPolyDataReader()
@@ -61,7 +62,7 @@ for f_name in os.listdir('datasets/LAA_segmentation/'):
         mesh_data.edge_areas = []
         mesh_data.vs = points
         faces = poly_mat
-       
+        #%%
         faces, face_labels = Remvoe_zero_area(mesh_data, faces, face_labels)
         mesh_data.v_mask = np.ones(len(mesh_data.vs), dtype=bool)
         faces, face_areas = remove_non_manifolds(mesh_data, faces)
@@ -90,7 +91,7 @@ for f_name in os.listdir('datasets/LAA_segmentation/'):
         
         np.savez('datasets/LAA_segmentation/labels/'+f_name.split('.')[0],
                  labels=edge_labels,soft_labels=soft_labels)
-
+        break
 '''
 Read files again as 
 loaded = np.load('datasets/LAA_segmentation/labels/'+f_name.split('.')[0]+'.npz')
