@@ -1,9 +1,11 @@
 import numpy as np
 import os
 import ntpath
-
+import vtk
+from vtk.numpy_interface import dataset_adapter as dsa
 
 def fill_mesh(mesh2fill, file: str, opt):
+    '''
     load_path = get_mesh_path(file, opt.num_aug)
     if os.path.exists(load_path):
         mesh_data = np.load(load_path, encoding='latin1', allow_pickle=True)
@@ -14,6 +16,57 @@ def fill_mesh(mesh2fill, file: str, opt):
                             filename=mesh_data.filename, sides=mesh_data.sides,
                             edge_lengths=mesh_data.edge_lengths, edge_areas=mesh_data.edge_areas,
                             features=mesh_data.features)
+        '''
+    #filename = 'datasets/LAA_segmentation/' + f_name
+        
+    reader = vtk.vtkPolyDataReader()
+    reader.SetFileName(file)
+    reader.ReadAllScalarsOn()
+    reader.Update()
+    data = reader.GetOutput()
+    
+    cleanPolyData = vtk.vtkCleanPolyData()
+    cleanPolyData.ToleranceIsAbsoluteOn()
+    cleanPolyData.SetAbsoluteTolerance(1.e-3)
+    cleanPolyData.SetInputData(data)
+    cleanPolyData.Update()
+    
+    points = np.array( cleanPolyData.GetOutput().GetPoints().GetData() )
+    
+    face_labels = np.array( cleanPolyData.GetOutput().GetCellData().GetScalars() )
+    
+    poly = dsa.WrapDataObject(cleanPolyData.GetOutput()).Polygons
+    poly_mat = np.reshape(poly,(-1,4))[:,1:4]
+    
+    
+    
+    class MeshPrep:
+            def __getitem__(self, item):
+                return eval('self.' + item)
+    
+    mesh_data = MeshPrep()
+    mesh_data.edges = None
+    mesh_data.gemm_edges = mesh_data.sides = None
+    mesh_data.edges_count = None
+    mesh_data.ve = None
+    mesh_data.v_mask = None
+    mesh_data.filename = file
+    mesh_data.edge_lengths = None
+    mesh_data.edge_areas = []
+    mesh_data.vs = points
+    faces = poly_mat
+    
+    faces, face_labels = Remvoe_zero_area(mesh_data, faces, face_labels)
+    mesh_data.v_mask = np.ones(len(mesh_data.vs), dtype=bool)
+    faces, face_areas = remove_non_manifolds(mesh_data, faces)
+    if opt.num_aug > 1:
+        faces = augmentation(mesh_data, opt, faces)
+    build_gemm(mesh_data, faces, face_areas)
+    if opt.num_aug > 1:
+        post_augmentation(mesh_data, opt)
+    mesh_data.features = extract_features(mesh_data)
+    
+    
     mesh2fill.vs = mesh_data['vs']
     mesh2fill.edges = mesh_data['edges']
     mesh2fill.gemm_edges = mesh_data['gemm_edges']
@@ -35,6 +88,17 @@ def get_mesh_path(file: str, num_aug: int):
     if not os.path.isdir(load_dir):
         os.makedirs(load_dir, exist_ok=True)
     return load_file
+
+def Remvoe_zero_area(mesh, faces, face_labels):
+    face_normals = np.cross(mesh.vs[faces[:, 1]] - mesh.vs[faces[:, 0]],
+                            mesh.vs[faces[:, 2]] - mesh.vs[faces[:, 1]])
+    face_areas = np.sqrt((face_normals ** 2).sum(axis=1))
+    if np.any(face_areas[:, np.newaxis] == 0):
+        temp = (face_areas == 0).nonzero()
+        faces = np.delete(faces,temp,axis=0)
+        face_labels = np.delete(face_labels,temp,axis=0)
+        
+    return faces, face_labels
 
 def from_scratch(file, opt):
 

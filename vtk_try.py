@@ -10,7 +10,7 @@ import vtk
 from vtk.numpy_interface import dataset_adapter as dsa
 from models.layers.mesh_prepare import *
 from matplotlib.cbook import flatten
-filename = 'datasets/LAA_segmentation/0003.vtk'
+filename = 'datasets/0236_less_points.vtk'
 
 reader = vtk.vtkPolyDataReader()
 reader.SetFileName(filename)

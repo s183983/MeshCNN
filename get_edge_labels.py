@@ -5,7 +5,7 @@ Created on Mon Feb  8 10:27:02 2021
 @author: lowes
 """
 
-
+from tvtk.api import tvtk, write_data
 import numpy as np
 import vtk
 from vtk.numpy_interface import dataset_adapter as dsa
@@ -27,7 +27,7 @@ def Remvoe_zero_area(mesh, faces, face_labels):
 
 
 for f_name in os.listdir('datasets/LAA_segmentation/'):
-    if f_name.endswith('.vtk') and int(f_name.split('.')[0])==60:
+    if f_name.endswith('.vtk'): #and int(f_name.split('.')[0])==236:
         filename = 'datasets/LAA_segmentation/' + f_name
         
         reader = vtk.vtkPolyDataReader()
@@ -36,12 +36,18 @@ for f_name in os.listdir('datasets/LAA_segmentation/'):
         reader.Update()
         data = reader.GetOutput()
         
-        points = np.array( reader.GetOutput().GetPoints().GetData() )
+        cleanPolyData = vtk.vtkCleanPolyData()
+        cleanPolyData.ToleranceIsAbsoluteOn()
+        cleanPolyData.SetAbsoluteTolerance(1.e-3)
+        cleanPolyData.SetInputData(data)
+        cleanPolyData.Update()
         
-        face_labels = np.array( data.GetCellData().GetScalars() )
+        points = np.array( cleanPolyData.GetOutput().GetPoints().GetData() )
+        
+        face_labels = np.array( cleanPolyData.GetOutput().GetCellData().GetScalars() )
         
         numpy_array_of_points = dsa.WrapDataObject(data).Points
-        poly = dsa.WrapDataObject(data).Polygons
+        poly = dsa.WrapDataObject(cleanPolyData.GetOutput()).Polygons
         poly_mat = np.reshape(poly,(-1,4))[:,1:4]
         
         num_aug = 1
@@ -62,7 +68,25 @@ for f_name in os.listdir('datasets/LAA_segmentation/'):
         mesh_data.edge_areas = []
         mesh_data.vs = points
         faces = poly_mat
+        
+        '''
+        mesh=mesh_data
+        face_normals = np.cross(mesh.vs[faces[:, 1]] - mesh.vs[faces[:, 0]],
+                            mesh.vs[faces[:, 2]] - mesh.vs[faces[:, 1]])
+        face_areas = np.sqrt((face_normals ** 2).sum(axis=1))
+        print((face_areas==0).nonzero())
+        print('Difference in lengt ', len(numpy_array_of_points)-len(points))
+        
+        writer = vtk.vtkPolyDataWriter()
+        writer.SetInputData(cleanPolyData.GetOutput())
+        writer.SetFileName('datasets/0236_less_points.vtk')
+        writer.Write()
+        
+        mesh_w = tvtk.PolyData(points=points, polys=poly_mat)
+        write_data(mesh_w, 'datasets/0236_less_tvtk.vtk')
+        
         #%%
+        
         faces, face_labels = Remvoe_zero_area(mesh_data, faces, face_labels)
         mesh_data.v_mask = np.ones(len(mesh_data.vs), dtype=bool)
         faces, face_areas = remove_non_manifolds(mesh_data, faces)
@@ -91,7 +115,7 @@ for f_name in os.listdir('datasets/LAA_segmentation/'):
         
         np.savez('datasets/LAA_segmentation/labels/'+f_name.split('.')[0],
                  labels=edge_labels,soft_labels=soft_labels)
-        break
+        
 '''
 Read files again as 
 loaded = np.load('datasets/LAA_segmentation/labels/'+f_name.split('.')[0]+'.npz')
