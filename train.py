@@ -3,7 +3,7 @@ from options.train_options import TrainOptions
 from data import DataLoader
 from models import create_model
 from util.writer import Writer
-from test.py import run_test
+from test_script import run_test
 
 if __name__ == '__main__':
     opt = TrainOptions().parse()

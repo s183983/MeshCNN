@@ -86,7 +86,7 @@ for f_name in os.listdir('datasets/LAA_segmentation/'):
         write_data(mesh_w, 'datasets/0236_less_tvtk.vtk')
         
         #%%
-        
+        '''
         faces, face_labels = Remvoe_zero_area(mesh_data, faces, face_labels)
         mesh_data.v_mask = np.ones(len(mesh_data.vs), dtype=bool)
         faces, face_areas = remove_non_manifolds(mesh_data, faces)
