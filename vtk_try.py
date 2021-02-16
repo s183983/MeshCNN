@@ -10,7 +10,7 @@ import vtk
 from vtk.numpy_interface import dataset_adapter as dsa
 from models.layers.mesh_prepare import *
 from matplotlib.cbook import flatten
-filename = 'datasets/0236_less_points.vtk'
+filename = 'datasets/LAA_segmentation/0236.vtk'
 
 reader = vtk.vtkPolyDataReader()
 reader.SetFileName(filename)
@@ -18,14 +18,23 @@ reader.ReadAllScalarsOn()
 reader.Update()
 data = reader.GetOutput()
 
-points = np.array( reader.GetOutput().GetPoints().GetData() )
+
+#%%
+filt = vtk.vtkConnectivityFilter()
+
+filt.SetInputData(data) # get the data from the MC alg.
+filt.SetExtractionModeToLargestRegion()
+#filt.ColorRegionsOn()
+filt.Update()
+data = filt.GetOutput()
+points = np.array( data.GetPoints().GetData() )
 
 print(data.GetCellData().GetScalars())
 
 face_labels = np.array( data.GetCellData().GetScalars() )
 
 numpy_array_of_points = dsa.WrapDataObject(data).Points
-poly = dsa.WrapDataObject(data).Polygons
+poly = dsa.WrapDataObject(filt.GetOutput()).Polygons
 poly_mat = np.reshape(poly,(-1,4))[:,1:4]
 #%% Visualize with vtk
 ren = vtk.vtkRenderer()
@@ -41,7 +50,7 @@ iren.SetRenderWindow(renWin)
 
 # mapper
 dataMapper = vtk.vtkPolyDataMapper()
-dataMapper.SetInputConnection(reader.GetOutputPort())
+dataMapper.SetInputConnection(filt.GetOutputPort())
 
 # actor
 dataActor = vtk.vtkActor()

@@ -5,7 +5,6 @@ Created on Mon Feb  8 10:27:02 2021
 @author: lowes
 """
 
-from tvtk.api import tvtk, write_data
 import numpy as np
 import vtk
 from vtk.numpy_interface import dataset_adapter as dsa
@@ -27,31 +26,40 @@ def Remvoe_zero_area(mesh, faces, face_labels):
 
 
 for f_name in os.listdir('datasets/LAA_segmentation/'):
-    if f_name.endswith('.vtk'): #and int(f_name.split('.')[0])==236:
+    if f_name.endswith('.vtk') and int(f_name.split('.')[0])<11:
         filename = 'datasets/LAA_segmentation/' + f_name
+        
+        print(filename)
         
         reader = vtk.vtkPolyDataReader()
         reader.SetFileName(filename)
         reader.ReadAllScalarsOn()
         reader.Update()
         data = reader.GetOutput()
-        
+        filt = vtk.vtkConnectivityFilter()
+
+        filt.SetInputData(data) # get the data from the MC alg.
+        filt.SetExtractionModeToLargestRegion()
+        #filt.ColorRegionsOn()
+        filt.Update()
+        data_filt = filt.GetOutput()
+
         cleanPolyData = vtk.vtkCleanPolyData()
         cleanPolyData.ToleranceIsAbsoluteOn()
         cleanPolyData.SetAbsoluteTolerance(1.e-3)
-        cleanPolyData.SetInputData(data)
+        cleanPolyData.SetInputData(data_filt)
         cleanPolyData.Update()
         
         points = np.array( cleanPolyData.GetOutput().GetPoints().GetData() )
         
         face_labels = np.array( cleanPolyData.GetOutput().GetCellData().GetScalars() )
         
-        numpy_array_of_points = dsa.WrapDataObject(data).Points
+        #numpy_array_of_points = dsa.WrapDataObject(data).Points
+        
         poly = dsa.WrapDataObject(cleanPolyData.GetOutput()).Polygons
         poly_mat = np.reshape(poly,(-1,4))[:,1:4]
         
         num_aug = 1
-        ve = [[] for _ in points]
         
         class MeshPrep:
                 def __getitem__(self, item):

@@ -17,27 +17,32 @@ def fill_mesh(mesh2fill, file: str, opt):
                             edge_lengths=mesh_data.edge_lengths, edge_areas=mesh_data.edge_areas,
                             features=mesh_data.features)
         '''
-    #filename = 'datasets/LAA_segmentation/' + f_name
-        
+    
     reader = vtk.vtkPolyDataReader()
     reader.SetFileName(file)
     reader.ReadAllScalarsOn()
     reader.Update()
     data = reader.GetOutput()
-    
+    filt = vtk.vtkConnectivityFilter()
+
+    filt.SetInputData(data) # get the data from the MC alg.
+    filt.SetExtractionModeToLargestRegion()
+    #filt.ColorRegionsOn()
+    filt.Update()
+    data_filt = filt.GetOutput()
+
     cleanPolyData = vtk.vtkCleanPolyData()
     cleanPolyData.ToleranceIsAbsoluteOn()
     cleanPolyData.SetAbsoluteTolerance(1.e-3)
-    cleanPolyData.SetInputData(data)
+    cleanPolyData.SetInputData(data_filt)
     cleanPolyData.Update()
     
     points = np.array( cleanPolyData.GetOutput().GetPoints().GetData() )
     
     face_labels = np.array( cleanPolyData.GetOutput().GetCellData().GetScalars() )
-    
+      
     poly = dsa.WrapDataObject(cleanPolyData.GetOutput()).Polygons
     poly_mat = np.reshape(poly,(-1,4))[:,1:4]
-    
     
     
     class MeshPrep:
