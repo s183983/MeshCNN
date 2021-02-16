@@ -114,7 +114,7 @@ class ClassifierModel:
             pred_class = out.data.max(1)[1]
             label_class = self.labels
             for i, m in enumerate(self.mesh):
-                filepath = os.path.join(m.export_folder, m.filename[:-4])
+                filepath = os.path.join(m.export_folder, m.filename[:-4].split('\\')[-1])
                 np.save(filepath, out.data[i,:,:].cpu().numpy())
             self.export_segmentation(pred_class.cpu())
             correct = self.get_accuracy(pred_class, label_class)

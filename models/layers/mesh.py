@@ -13,6 +13,7 @@ class Mesh:
         self.vs = self.v_mask = self.filename = self.features = self.edge_areas = None
         self.edges = self.gemm_edges = self.sides = None
         self.pool_count = 0
+        self.edges_list =[]
         fill_mesh(self, file, opt)
         self.export_folder = export_folder
         self.history_data = None
@@ -75,9 +76,11 @@ class Mesh:
         if file is None:
             if self.export_folder:
                 filename, file_extension = os.path.splitext(self.filename)
-                file = '%s/%s_%d%s' % (self.export_folder, filename, self.pool_count, file_extension)
+                file = '%s/%s_%d%s' % (self.export_folder, filename.split('\\')[-1], self.pool_count, file_extension)
             else:
                 return
+        self.edges_list.append( self.edges )
+        
         faces = []
         vs = self.vs[self.v_mask]
         gemm = np.array(self.gemm_edges)
@@ -88,34 +91,55 @@ class Mesh:
             for cycle in cycles:
                 faces.append(self.__cycle_to_face(cycle, new_indices))
         with open(file, 'w+') as f:
+            f.write("# vtk DataFile Version 4.2 \n vtk output \n ASCII \n \n DATASET POLYDATA \n POINTS %d float \n" % len(vs))
             for vi, v in enumerate(vs):
                 vcol = ' %f %f %f' % (vcolor[vi, 0], vcolor[vi, 1], vcolor[vi, 2]) if vcolor is not None else ''
-                f.write("v %f %f %f%s\n" % (v[0], v[1], v[2], vcol))
+                f.write("%f %f %f%s\n" % (v[0], v[1], v[2], vcol))
+                
+            f.write("POLYGONS %d %d \n" % (len(faces),4*len(faces)))
             for face_id in range(len(faces) - 1):
-                f.write("f %d %d %d\n" % (faces[face_id][0] + 1, faces[face_id][1] + 1, faces[face_id][2] + 1))
-            f.write("f %d %d %d" % (faces[-1][0] + 1, faces[-1][1] + 1, faces[-1][2] + 1))
-            for edge in self.edges:
-                f.write("\ne %d %d" % (new_indices[edge[0]] + 1, new_indices[edge[1]] + 1))
+                f.write("3 %d %d %d\n" % (faces[face_id][0] , faces[face_id][1], faces[face_id][2]))
+            f.write("3 %d %d %d" % (faces[-1][0], faces[-1][1], faces[-1][2]))
+            #for edge in self.edges:
+             #   f.write("\ne %d %d" % (new_indices[edge[0]] + 1, new_indices[edge[1]] + 1))
 
     def export_segments(self, segments):
         if not self.export_folder:
             return
         cur_segments = segments
         for i in range(self.pool_count + 1):
+            edges = self.edges_list[i]
             filename, file_extension = os.path.splitext(self.filename)
-            file = '%s/%s_%d%s' % (self.export_folder, filename, i, file_extension)
+            file = '%s/%s_%d%s' % (self.export_folder, filename.split('\\')[-1], i, file_extension)
             fh, abs_path = mkstemp()
             edge_key = 0
+            faces=[]
+            poly=False
             with os.fdopen(fh, 'w') as new_file:
                 with open(file) as old_file:
                     for line in old_file:
+                        new_file.write(line)
+                        if poly:
+                            face = line[1:3]
+                            faces.append(face)
+                            
+                        if line.split(' ')[0] == POLYDATA:
+                            poly = True
+                scalars = np.zeros(1,len(faces))            
+                for i,face in enumerate(faces):
+                    
+                    if segments[[face]].mean() < 0.5:
+                        scalars[i] = 0
+                    elif segments[[face]].mean() > 0.5:
+                        scalars[i] = 1
+                        '''
                         if line[0] == 'e':
                             new_file.write('%s %d' % (line.strip(), cur_segments[edge_key]))
                             if edge_key < len(cur_segments):
                                 edge_key += 1
                                 new_file.write('\n')
                         else:
-                            new_file.write(line)
+                            new_file.write(line)'''
             os.remove(file)
             move(abs_path, file)
             if i < len(self.history_data['edges_mask']):
