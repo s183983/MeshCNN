@@ -91,7 +91,7 @@ class Mesh:
             for cycle in cycles:
                 faces.append(self.__cycle_to_face(cycle, new_indices))
         with open(file, 'w+') as f:
-            f.write("# vtk DataFile Version 4.2 \n vtk output \n ASCII \n \n DATASET POLYDATA \n POINTS %d float \n" % len(vs))
+            f.write("# vtk DataFile Version 4.2 \nvtk output \nASCII \n \nDATASET POLYDATA \nPOINTS %d float \n" % len(vs))
             for vi, v in enumerate(vs):
                 vcol = ' %f %f %f' % (vcolor[vi, 0], vcolor[vi, 1], vcolor[vi, 2]) if vcolor is not None else ''
                 f.write("%f %f %f%s\n" % (v[0], v[1], v[2], vcol))
@@ -119,20 +119,27 @@ class Mesh:
                 with open(file) as old_file:
                     for line in old_file:
                         new_file.write(line)
+                        if line.split(' ')[0] == 'SCALAR':
+                            poly = False
                         if poly:
-                            face = line[1:3]
+                            face = np.asarray([int(i) for i in line.split(' ')[1:4]])
                             faces.append(face)
-                            
-                        if line.split(' ')[0] == POLYDATA:
+                        if line.split(' ')[0] == 'POLYGONS':
                             poly = True
-                scalars = np.zeros(1,len(faces))            
+                scalars = np.zeros(len(faces)) 
+                
+                new_file.write("\n \nCELL_DATA %d \nSCALARS scalars double \nLOOKUP_TABLE default" % len(faces))
+                
                 for i,face in enumerate(faces):
                     
-                    if segments[[face]].mean() < 0.5:
+                    if segments[[face]].sum() < 1.5:
                         scalars[i] = 0
-                    elif segments[[face]].mean() > 0.5:
+                    elif segments[[face]].sum() > 1.5:
                         scalars[i] = 1
-                        '''
+                    if i%9 == 0:    
+                        new_file.write("\n") 
+                    new_file.write("%d " % scalars[i])
+                    '''
                         if line[0] == 'e':
                             new_file.write('%s %d' % (line.strip(), cur_segments[edge_key]))
                             if edge_key < len(cur_segments):
