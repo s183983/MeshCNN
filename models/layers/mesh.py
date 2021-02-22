@@ -3,6 +3,7 @@ from shutil import move
 import torch
 import numpy as np
 import os
+from matplotlib.cbook import flatten
 from models.layers.mesh_union import MeshUnion
 from models.layers.mesh_prepare import fill_mesh
 
@@ -14,6 +15,7 @@ class Mesh:
         self.edges = self.gemm_edges = self.sides = None
         self.pool_count = 0
         self.edges_list =[]
+        self.indces_list =[]
         fill_mesh(self, file, opt)
         self.export_folder = export_folder
         self.history_data = None
@@ -79,7 +81,6 @@ class Mesh:
                 file = '%s/%s_%d%s' % (self.export_folder, filename.split('\\')[-1], self.pool_count, file_extension)
             else:
                 return
-        self.edges_list.append( self.edges )
         
         faces = []
         vs = self.vs[self.v_mask]
@@ -90,6 +91,13 @@ class Mesh:
             cycles = self.__get_cycle(gemm, edge_index)
             for cycle in cycles:
                 faces.append(self.__cycle_to_face(cycle, new_indices))
+                
+        new_edges = np.zeros_like(self.edges)
+        for i,edge in enumerate(self.edges):
+                new_edges[i,:] = np.array([new_indices[edge[0]], new_indices[edge[1]]])
+        self.edges_list.append( new_edges )
+        #self.indces_list.append( new_indices )
+        
         with open(file, 'w+') as f:
             f.write("# vtk DataFile Version 4.2 \nvtk output \nASCII \n \nDATASET POLYDATA \nPOINTS %d float \n" % len(vs))
             for vi, v in enumerate(vs):
@@ -100,17 +108,18 @@ class Mesh:
             for face_id in range(len(faces) - 1):
                 f.write("3 %d %d %d\n" % (faces[face_id][0] , faces[face_id][1], faces[face_id][2]))
             f.write("3 %d %d %d" % (faces[-1][0], faces[-1][1], faces[-1][2]))
-            #for edge in self.edges:
-             #   f.write("\ne %d %d" % (new_indices[edge[0]] + 1, new_indices[edge[1]] + 1))
+            
 
-    def export_segments(self, segments):
+    def export_segments(self, segments): #check edgesmask
         if not self.export_folder:
             return
         cur_segments = segments
         for i in range(self.pool_count + 1):
             edges = self.edges_list[i]
+            #indices = self.indces_list[i]
             filename, file_extension = os.path.splitext(self.filename)
             file = '%s/%s_%d%s' % (self.export_folder, filename.split('\\')[-1], i, file_extension)
+            
             fh, abs_path = mkstemp()
             edge_key = 0
             faces=[]
@@ -119,26 +128,40 @@ class Mesh:
                 with open(file) as old_file:
                     for line in old_file:
                         new_file.write(line)
-                        if line.split(' ')[0] == 'SCALAR':
+                        if line.split(' ')[0] == 'SCALARS':
                             poly = False
                         if poly:
-                            face = np.asarray([int(i) for i in line.split(' ')[1:4]])
+                            face = np.asarray([int(j) for j in line.split(' ')[1:4]])
                             faces.append(face)
                         if line.split(' ')[0] == 'POLYGONS':
                             poly = True
-                scalars = np.zeros(len(faces)) 
+                 
                 
                 new_file.write("\n \nCELL_DATA %d \nSCALARS scalars double \nLOOKUP_TABLE default" % len(faces))
                 
-                for i,face in enumerate(faces):
+                s_faces = np.sort(np.asarray(faces))
+                f01 = s_faces[:,[0,1]]
+                f02 = s_faces[:,[0,2]]
+                f12 = s_faces[:,[1,2]]
+                
+                face_labels = np.zeros(len(faces))
+                for edge_k,edge in enumerate(edges):
+                    idx = []
+                    #e = np.array([indices[ed[0]], indices[ed[1]]])
                     
-                    if segments[[face]].sum() < 1.5:
-                        scalars[i] = 0
-                    elif segments[[face]].sum() > 1.5:
-                        scalars[i] = 1
-                    if i%9 == 0:    
+                    idx.append( (edge==f01).all(axis=1).nonzero() )
+                    idx.append( (edge==f02).all(axis=1).nonzero() )
+                    idx.append( (edge==f12).all(axis=1).nonzero() )
+                    for j in list(flatten(idx)):
+                        face_labels[j] += cur_segments[edge_k]
+                
+                face_labels[face_labels<1.5]=0
+                face_labels[face_labels>0]=1
+                for j,face in enumerate(faces):
+                  
+                    if j%9 == 0:    
                         new_file.write("\n") 
-                    new_file.write("%d " % scalars[i])
+                    new_file.write("%d " % face_labels[j])
                     '''
                         if line[0] == 'e':
                             new_file.write('%s %d' % (line.strip(), cur_segments[edge_key]))
