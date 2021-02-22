@@ -10,6 +10,7 @@ dependencies:
   - numpy=1.15.0
   - matplotlib=3.0.3
   - tensorboard=1.14.0
+  - vtk=9.0.1
   - pip 
   - pip:
     - git+https://github.com/lanpa/tensorboardX.git
