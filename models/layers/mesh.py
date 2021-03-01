@@ -78,7 +78,7 @@ class Mesh:
         if file is None:
             if self.export_folder:
                 filename, file_extension = os.path.splitext(self.filename)
-                file = '%s/%s_%d%s' % (self.export_folder, filename.split('\\')[-1], self.pool_count, file_extension)
+                file = '%s/%s_%d.vtk' % (self.export_folder, filename.split('\\')[-1], self.pool_count)
             else:
                 return
         

@@ -99,8 +99,15 @@ maxfreq = n.max()
 # Set a clean upper y-axis limit.
 plt.ylim(ymax=np.ceil(maxfreq / 10) * 10 if maxfreq % 10 else maxfreq + 10)
 
-
-
+#%%
+ll=[]
+for f_name in os.listdir('datasets/LAA_segmentation/labels/'):
+    if f_name.endswith('.npz'):
+        filename = 'datasets/LAA_segmentation/labels/' + f_name
+        
+        loaded = np.load(filename)
+        labels = loaded['labels']
+        ll.append(len(labels))
 
 
 

@@ -1,8 +1,8 @@
 import numpy as np
 import os
 import ntpath
-import vtk
-from vtk.numpy_interface import dataset_adapter as dsa
+#import vtk
+#from vtk.numpy_interface import dataset_adapter as dsa
 
 def fill_mesh(mesh2fill, file: str, opt):
     '''
