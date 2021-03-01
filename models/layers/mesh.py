@@ -118,7 +118,7 @@ class Mesh:
             edges = self.edges_list[i]
             #indices = self.indces_list[i]
             filename, file_extension = os.path.splitext(self.filename)
-            file = '%s/%s_%d%s' % (self.export_folder, filename.split('\\')[-1], i, file_extension)
+            file = '%s/%s_%d.vtk' % (self.export_folder, filename.split('\\')[-1], i)
             
             fh, abs_path = mkstemp()
             edge_key = 0

@@ -16,7 +16,7 @@ def fill_mesh(mesh2fill, file: str, opt):
                             filename=mesh_data.filename, sides=mesh_data.sides,
                             edge_lengths=mesh_data.edge_lengths, edge_areas=mesh_data.edge_areas,
                             features=mesh_data.features)
-        '''
+        
     
     reader = vtk.vtkPolyDataReader()
     reader.SetFileName(file)
@@ -43,7 +43,11 @@ def fill_mesh(mesh2fill, file: str, opt):
       
     poly = dsa.WrapDataObject(cleanPolyData.GetOutput()).Polygons
     poly_mat = np.reshape(poly,(-1,4))[:,1:4]
+    '''
     
+    data_load = np.load(file)
+    points = data_load['points']
+    poly_mat = data_load['poly_mat']
     
     class MeshPrep:
             def __getitem__(self, item):
@@ -61,7 +65,7 @@ def fill_mesh(mesh2fill, file: str, opt):
     mesh_data.vs = points
     faces = poly_mat
     
-    faces, face_labels = Remvoe_zero_area(mesh_data, faces, face_labels)
+    #faces, face_labels = Remvoe_zero_area(mesh_data, faces, face_labels)
     mesh_data.v_mask = np.ones(len(mesh_data.vs), dtype=bool)
     faces, face_areas = remove_non_manifolds(mesh_data, faces)
     if opt.num_aug > 1:
