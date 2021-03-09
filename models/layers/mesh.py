@@ -78,7 +78,12 @@ class Mesh:
         if file is None:
             if self.export_folder:
                 filename, file_extension = os.path.splitext(self.filename)
-                file = '%s/%s_%d.vtk' % (self.export_folder, filename.split('\\')[-1], self.pool_count)
+                import platform
+                if platform.system()=="Windows":
+                    file = '%s/%s_%d.vtk' % (self.export_folder, filename.split('\\')[-1], self.pool_count)
+                elif platform.system()=="Linux":
+                    file = '%s/%s_%d.vtk' % (self.export_folder, filename.split('/')[-1], self.pool_count)
+             
             else:
                 return
         
@@ -118,7 +123,13 @@ class Mesh:
             edges = self.edges_list[i]
             #indices = self.indces_list[i]
             filename, file_extension = os.path.splitext(self.filename)
-            file = '%s/%s_%d.vtk' % (self.export_folder, filename.split('\\')[-1], i)
+            import platform
+            if platform.system()=="Windows":
+                file = '%s/%s_%d.vtk' % (self.export_folder, filename.split('\\')[-1], i)
+            elif platform.system()=="Linux":
+                file = '%s/%s_%d.vtk' % (self.export_folder, filename.split('/')[-1], i)
+             
+            
             
             fh, abs_path = mkstemp()
             edge_key = 0

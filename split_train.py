@@ -39,7 +39,7 @@ for f_name in os.listdir('datasets/LAA_segmentation/'):
 points_count = np.asarray(points_count)
 #%%
 
-def split_ting(points_count,train_size = 0.8,bin_width = 0.1):
+def split_ting(points_count,bin_width = 0.1):
     data = points_count.copy()
     train_idx = np.zeros_like(data)
     quantiles = np.quantile(data,np.arange(bin_width,1,bin_width))
@@ -48,14 +48,10 @@ def split_ting(points_count,train_size = 0.8,bin_width = 0.1):
         idxs = np.atleast_1d( (data>quantiles[i]) & (data<quantiles[i+1]) ).nonzero()
         rand_idxs = np.random.permutation(idxs[0].tolist())
         
-        if np.random.binomial(1,train_size):
-            tr_idxs = rand_idxs[0:np.int(np.ceil(len(idxs[0])*train_size))]
-        else:
-            tr_idxs = rand_idxs[0:np.int(np.floor(len(idxs[0])*train_size))]
+ 
+        train_idx[rand_idxs[0]] = 1
+        train_idx[rand_idxs[1:3]] = 2
             
-        
-        for idx in tr_idxs:
-            train_idx[idx] = 1
         for idx in rand_idxs:
             data[idx] = -1
     
@@ -68,6 +64,7 @@ print(train_idx.mean())
 #%%
 for i, f_name in enumerate(os.listdir('datasets/LAA_segmentation/')):
     if f_name.endswith('.vtk'):
+        print(f_name)
         filename = 'datasets/LAA_segmentation/' + f_name
                 
         reader = vtk.vtkPolyDataReader()
@@ -98,36 +95,51 @@ for i, f_name in enumerate(os.listdir('datasets/LAA_segmentation/')):
         poly = dsa.WrapDataObject(cleanPolyData.GetOutput()).Polygons
         poly_mat = np.reshape(poly,(-1,4))[:,1:4]
         
-        if train_idx[i]:
+        if train_idx[i]==0:
             np.savez('datasets/LAA_segmentation/train/'+f_name.split('.')[0],
                  points=points, poly_mat=poly_mat)
-        else:
-             np.savez('datasets/LAA_segmentation/test/'+f_name.split('.')[0],
+        elif train_idx[i]==1:
+            np.savez('datasets/LAA_segmentation/test/'+f_name.split('.')[0],
+                 points=points, poly_mat=poly_mat)   
+        elif train_idx[i]==2:
+             np.savez('datasets/LAA_segmentation/final_test/'+f_name.split('.')[0],
                  points=points, poly_mat=poly_mat)   
              
 #%%
 import matplotlib.pyplot as plt
 
-x = points_count[train_idx.nonzero()]
+x = points_count[(0==train_idx).nonzero()]
 print(x.mean())
-n, bins, patches = plt.hist(x=x, bins=10, color='#0504aa',
+n, bins, patches = plt.hist(x=x, bins=5, color='#0504aa',
                             alpha=0.7, rwidth=0.85)
 plt.grid(axis='y', alpha=0.75)
 plt.xlabel('No of points in meshes')
 plt.ylabel('Frequency')
-plt.title('Distributions of no points in trainset')
+plt.title('Distributions of no points in train set')
 maxfreq = n.max()
 # Set a clean upper y-axis limit.
 plt.ylim(ymax=np.ceil(maxfreq / 10) * 10 if maxfreq % 10 else maxfreq + 10)
 #%%
-x = points_count[(1-train_idx).nonzero()]
+x = points_count[(1==train_idx).nonzero()]
 print(x.mean())
-n, bins, patches = plt.hist(x=x, bins=10, color='#0504aa',
+n, bins, patches = plt.hist(x=x, bins=5, color='#0504aa',
                             alpha=0.7, rwidth=0.85)
 plt.grid(axis='y', alpha=0.75)
 plt.xlabel('No of points in meshes')
 plt.ylabel('Frequency')
-plt.title('Distributions of no points in testset')
+plt.title('Distributions of no points in validation set')
+maxfreq = n.max()
+# Set a clean upper y-axis limit.
+plt.ylim(ymax=np.ceil(maxfreq / 10) * 10 if maxfreq % 10 else maxfreq + 10)
+#%%
+x = points_count[(2==train_idx).nonzero()]
+print(x.mean())
+n, bins, patches = plt.hist(x=x, bins=5, color='#0504aa',
+                            alpha=0.7, rwidth=0.85)
+plt.grid(axis='y', alpha=0.75)
+plt.xlabel('No of points in meshes')
+plt.ylabel('Frequency')
+plt.title('Distributions of no points in test set')
 maxfreq = n.max()
 # Set a clean upper y-axis limit.
 plt.ylim(ymax=np.ceil(maxfreq / 10) * 10 if maxfreq % 10 else maxfreq + 10)
