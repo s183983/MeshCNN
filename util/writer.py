@@ -52,10 +52,10 @@ class Writer:
             for name, param in model.net.named_parameters():
                 self.display.add_histogram(name, param.clone().cpu().data.numpy(), epoch)
 
-    def print_acc(self, epoch, acc):
+    def print_acc(self, epoch, acc, dice):
         """ prints test accuracy to terminal / file """
-        message = 'epoch: {}, TEST ACC: [{:.5} %]\n' \
-            .format(epoch, acc * 100)
+        message = 'epoch: {}, TEST ACC: [{:.5} %], Dice score: [{:.5} %]\n' \
+            .format(epoch, acc * 100, dice*100)
         print(message)
         with open(self.testacc_log, "a") as log_file:
             log_file.write('%s\n' % message)

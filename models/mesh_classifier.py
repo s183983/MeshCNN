@@ -26,7 +26,6 @@ class ClassifierModel:
         self.mesh = None
         self.soft_label = None
         self.loss = None
-
         #
         self.nclasses = opt.nclasses
 
@@ -60,7 +59,7 @@ class ClassifierModel:
         return out
 
     def backward(self, out):
-        self.loss = self.criterion(out, self.labels)
+        self.loss = self.criterion(out, self.labels) + self.opt.prior * self.MRF_loss(out)
         self.loss.backward()
 
     def optimize_parameters(self):
@@ -69,7 +68,22 @@ class ClassifierModel:
         self.backward(out)
         self.optimizer.step()
 
-
+    def MRF_loss(self, out):
+        loss = 0
+        out = torch.nn.functional.softmax(out,dim=1)
+        
+        for im, mesh in enumerate(self.mesh):
+            N0 = out[im,:,mesh.gemm_edges[:,0]]
+            N1 = out[im,:,mesh.gemm_edges[:,1]]
+            N2 = out[im,:,mesh.gemm_edges[:,2]]
+            N3 = out[im,:,mesh.gemm_edges[:,3]]
+            one_ring = torch.stack((N0,N1,N2,N3))
+            loss += ((one_ring-out[im,:,:mesh.edges_count])**2).sum()/mesh.edges_count
+            
+        return loss
+                    
+                
+        
 ##################
 
     def load_network(self, which_epoch):
@@ -118,7 +132,8 @@ class ClassifierModel:
                 np.save(filepath, out.data[i,:,:].cpu().numpy())
             self.export_segmentation(pred_class.cpu())
             correct = self.get_accuracy(pred_class, label_class)
-        return correct, len(label_class)
+            dice = self.dice_score(pred_class, label_class)
+        return correct, len(label_class), dice
 
     def get_accuracy(self, pred, labels):
         """computes accuracy for classification / segmentation """
@@ -127,6 +142,16 @@ class ClassifierModel:
         elif self.opt.dataset_mode == 'segmentation':
             correct = seg_accuracy(pred, self.soft_label, self.mesh)
         return correct
+    
+    def dice_score(self, pred, labels):
+        dice = 0
+        #correct_mat = labels.gather(2, pred.cpu().unsqueeze(dim=2))
+        for i, mesh in enumerate(self.mesh):
+            pred_i = pred[i,:mesh.edges_count]
+            label_i =labels[i,:mesh.edges_count]
+            dice += 2*(pred_i*label_i).sum() / ( pred_i.sum()+label_i.sum() )
+            
+        return dice/len(self.mesh)
 
     def export_segmentation(self, pred_seg):
         if self.opt.dataset_mode == 'segmentation':

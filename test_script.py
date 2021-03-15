@@ -12,12 +12,15 @@ def run_test(epoch=-1):
     model = create_model(opt)
     writer = Writer(opt)
     # test
+    dice_sum = 0
     writer.reset_counter()
     for i, data in enumerate(dataset):
         model.set_input(data)
-        ncorrect, nexamples = model.test()
+        ncorrect, nexamples, dice = model.test()
+        dice_sum += dice
         writer.update_counter(ncorrect, nexamples)
-    writer.print_acc(epoch, writer.acc)
+    dice_sum /= len(dataset)
+    writer.print_acc(epoch, writer.acc,dice_sum)
     return writer.acc
 
 

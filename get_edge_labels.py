@@ -25,9 +25,9 @@ def Remvoe_zero_area(mesh, faces, face_labels):
     return faces, face_labels
 
 
-for f_name in os.listdir('datasets/LAA_segmentation/'):
-    if f_name.endswith('.vtk') and int(f_name.split('.')[0])<11:
-        filename = 'datasets/LAA_segmentation/' + f_name
+for f_name in os.listdir('datasets/LAA_3classes/'):
+    if f_name.endswith('.vtk'):
+        filename = 'datasets/LAA_3classes/' + f_name
         
         print(filename)
         
@@ -120,8 +120,8 @@ for f_name in os.listdir('datasets/LAA_segmentation/'):
                 soft_labels[i,int(face_labels[j])] = 1
         
         edge_labels = soft_labels[:,1]
-        
-        np.savez('datasets/LAA_segmentation/labels/'+f_name.split('.')[0],
+        edge_labels[soft_labels.sum(1)==2] = 2
+        np.savez('datasets/LAA_3classes/labels/'+f_name.split('.')[0],
                  labels=edge_labels,soft_labels=soft_labels)
         
 '''

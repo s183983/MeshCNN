@@ -16,13 +16,22 @@ class SegmentationData(BaseDataset):
         self.paths = self.make_dataset(self.dir)
         self.seg_paths = self.get_seg_files(self.paths, os.path.join(self.root, 'labels'), seg_ext='.npz')
         #self.sseg_paths = self.get_seg_files(self.paths, os.path.join(self.root, 'sseg'), seg_ext='.seseg')
-        self.classes = np.array([0,1])
+        self.classes = np.loadtxt(os.path.join(self.root, 'classes.txt'))
         self.offset = 0
         #= self.get_n_segs(os.path.join(self.root, 'classes.txt'), self.seg_paths)
         self.nclasses = len(self.classes)
+        # # modify for network later.
+        
+        if len(opt.test_file)>1:
+            for i in range(len(self.seg_paths)):
+                if self.seg_paths[i][-8:-4]==opt.test_file:
+                    new_file_idx = i
+                    
+            self.seg_paths = [self.seg_paths[new_file_idx]]
+            self.paths = [self.paths[new_file_idx]]
+        
         self.size = len(self.paths)
         self.get_mean_std()
-        # # modify for network later.
         opt.nclasses = self.nclasses
         opt.input_nc = self.ninput_channels
 
