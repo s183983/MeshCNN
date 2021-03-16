@@ -110,7 +110,8 @@ for f_name in os.listdir('datasets/LAA_3classes/'):
         f02 = s_faces[:,[0,2]]
         f12 = s_faces[:,[1,2]]
         
-        soft_labels = np.zeros(mesh_data.edges.shape)
+        #soft_labels = np.zeros(mesh_data.edges.shape)
+        soft_labels = np.zeros(, hvilket(mesh_data.edges_count,3))
         for i,e in enumerate(mesh_data.edges):
             idx = []
             idx.append( (e==f01).all(axis=1).nonzero() )
