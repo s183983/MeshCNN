@@ -148,11 +148,11 @@ class ClassifierModel:
         smooth=1e-6
         #correct_mat = labels.gather(2, pred.cpu().unsqueeze(dim=2))
         for i, mesh in enumerate(self.mesh):
-            pred_i = pred[i,:mesh.edges_count].cpu().float()
-            label_i =labels[i,:mesh.edges_count].cpu().float()
+            pred_i = pred[i,:mesh.edges_count].cpu()
+            label_i =labels[i,:mesh.edges_count].cpu()
             for idx in range(self.nclasses):
-                pr = pred_i==idx
-                lab = label_i==idx
+                pr = (pred_i==idx).float()
+                lab =(label_i==idx).float()
                 dice += ( 2*(pr*lab).sum() + smooth) / ( pr.sum()+lab.sum() +smooth)
             dice /= self.nclasses
             
