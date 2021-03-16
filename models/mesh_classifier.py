@@ -144,19 +144,20 @@ class ClassifierModel:
         return correct
     
     def dice_score(self, pred, labels):
-        dice = 0
+        dice_sum = 0
         smooth=1e-6
         #correct_mat = labels.gather(2, pred.cpu().unsqueeze(dim=2))
         for i, mesh in enumerate(self.mesh):
+            dice = 0
             pred_i = pred[i,:mesh.edges_count].cpu()
             label_i =labels[i,:mesh.edges_count].cpu()
             for idx in range(self.nclasses):
                 pr = (pred_i==idx).float()
                 lab =(label_i==idx).float()
                 dice += ( 2*(pr*lab).sum() + smooth) / ( pr.sum()+lab.sum() +smooth)
-            dice /= self.nclasses
+            dice_sum += dice / self.nclasses
             
-        return dice/len(self.mesh)
+        return dice_sum/len(self.mesh)
     
         
 

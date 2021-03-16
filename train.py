@@ -4,6 +4,8 @@ from data import DataLoader
 from models import create_model
 from util.writer import Writer
 from test_script import run_test
+import os
+import numpy as np
 
 if __name__ == '__main__':
     opt = TrainOptions().parse()
@@ -14,7 +16,7 @@ if __name__ == '__main__':
     model = create_model(opt)
     writer = Writer(opt)
     total_steps = 0
-
+    loss_mat = []
     for epoch in range(opt.epoch_count, opt.niter + opt.niter_decay + 1):
         epoch_start_time = time.time()
         iter_data_time = time.time()
@@ -28,6 +30,7 @@ if __name__ == '__main__':
             epoch_iter += opt.batch_size
             model.set_input(data)
             model.optimize_parameters()
+            loss_mat.append(model.loss.cpu().data.numpy())
 
             if total_steps % opt.print_freq == 0:
                 loss = model.loss
@@ -46,6 +49,7 @@ if __name__ == '__main__':
                   (epoch, total_steps))
             model.save_network('latest')
             model.save_network(epoch)
+            np.savez(os.path.join(opt.checkpoints_dir, opt.name)+ '/loss', loss=loss_mat)
 
         print('End of epoch %d / %d \t Time Taken: %d sec' %
               (epoch, opt.niter + opt.niter_decay, time.time() - epoch_start_time))
@@ -56,5 +60,5 @@ if __name__ == '__main__':
         if epoch % opt.run_test_freq == 0:
             acc = run_test(epoch)
             writer.plot_acc(acc, epoch)
-
+    np.savez(os.path.join(opt.checkpoints_dir, opt.name)+ '/loss', loss=loss_mat)
     writer.close()
