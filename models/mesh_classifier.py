@@ -145,13 +145,20 @@ class ClassifierModel:
     
     def dice_score(self, pred, labels):
         dice = 0
+        smooth=1e-6
         #correct_mat = labels.gather(2, pred.cpu().unsqueeze(dim=2))
         for i, mesh in enumerate(self.mesh):
-            pred_i = pred[i,:mesh.edges_count]
-            label_i =labels[i,:mesh.edges_count]
-            dice += 2*(pred_i*label_i).sum() / ( pred_i.sum()+label_i.sum() )
+            pred_i = pred[i,:mesh.edges_count].cpu().float()
+            label_i =labels[i,:mesh.edges_count].cpu().float()
+            for idx in range(self.nclasses):
+                pr = pred_i==idx
+                lab = label_i==idx
+                dice += ( 2*(pr*lab).sum() + smooth) / ( pr.sum()+lab.sum() +smooth)
+            dice /= self.nclasses
             
         return dice/len(self.mesh)
+    
+        
 
     def export_segmentation(self, pred_seg):
         if self.opt.dataset_mode == 'segmentation':
