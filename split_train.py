@@ -9,6 +9,75 @@ import vtk
 from vtk.numpy_interface import dataset_adapter as dsa
 import os
 
+for i, f_name in enumerate(os.listdir('datasets/LAA_segmentation/')):
+    if f_name.endswith('.vtk'):
+        print(f_name)
+        filename = 'datasets/LAA_segmentation/' + f_name
+        try:
+            loaded = np.load('datasets/LAA_segmentation/npz_data/train/'+f_name.split('.')[0]+'.npz')
+            train = 0
+        except:
+            print('not train')
+        try:
+            loaded = np.load('datasets/LAA_segmentation/npz_data/test/'+f_name.split('.')[0]+'.npz')
+            train = 1
+        except:
+            print('not test')
+        try:
+            loaded = np.load('datasets/LAA_segmentation/npz_data/final_test/'+f_name.split('.')[0]+'.npz')
+            train = 2
+        except:
+            print('not_final_test')
+            
+        if train==0:
+            out_file = 'datasets/LAA_segmentation/train/' + f_name
+        elif train==1:
+            out_file = 'datasets/LAA_segmentation/test/' + f_name
+        elif train==2:
+            out_file = 'datasets/LAA_segmentation/final_test/' + f_name
+            
+        reader = vtk.vtkPolyDataReader()
+        reader.SetFileName(filename)
+        reader.ReadAllScalarsOn()
+        reader.Update()
+        data = reader.GetOutput()
+        filt = vtk.vtkConnectivityFilter()
+    
+        filt.SetInputData(data) # get the data from the MC alg.
+        filt.SetExtractionModeToLargestRegion()
+        #filt.ColorRegionsOn()
+        filt.Update()
+        data_filt = filt.GetOutput()
+    
+        cleanPolyData = vtk.vtkCleanPolyData()
+        cleanPolyData.ToleranceIsAbsoluteOn()
+        cleanPolyData.SetAbsoluteTolerance(1.e-3)
+        cleanPolyData.SetInputData(data_filt)
+        cleanPolyData.Update()
+        vs = np.array( cleanPolyData.GetOutput().GetPoints().GetData() )
+        face_labels = np.array( cleanPolyData.GetOutput().GetCellData().GetScalars() )         
+        poly = dsa.WrapDataObject(cleanPolyData.GetOutput()).Polygons
+        faces = np.reshape(poly,(-1,4))[:,1:4]
+        
+        print('writing file')
+        #vcolor = []
+        with open(out_file, 'w+') as f:
+            f.write("# vtk DataFile Version 4.2 \nvtk output \nASCII \n \nDATASET POLYDATA \nPOINTS %d float \n" % len(vs))
+            for vi, v in enumerate(vs):
+                #vcol = ' %f %f %f' % (vcolor[vi, 0], vcolor[vi, 1], vcolor[vi, 2]) if vcolor is not None else ''
+                f.write("%f %f %f\n" % (v[0], v[1], v[2]))
+            f.write("POLYGONS %d %d \n" % (len(faces),4*len(faces)))
+            for face_id in range(len(faces) - 1):
+                f.write("3 %d %d %d\n" % (faces[face_id][0] , faces[face_id][1], faces[face_id][2]))
+            f.write("3 %d %d %d" % (faces[-1][0], faces[-1][1], faces[-1][2]))
+            f.write("\n \nCELL_DATA %d \nSCALARS scalars double \nLOOKUP_TABLE default" % len(faces))
+            for j,face in enumerate(faces):
+                if j%9 == 0:    
+                    f.write("\n") 
+                f.write("%d " % face_labels[j])
+
+#%%
+
 points_count = []
 
 for f_name in os.listdir('datasets/LAA_segmentation/'):
@@ -104,7 +173,15 @@ for i, f_name in enumerate(os.listdir('datasets/LAA_segmentation/')):
         elif train_idx[i]==2:
              np.savez('datasets/LAA_segmentation/final_test/'+f_name.split('.')[0],
                  points=points, poly_mat=poly_mat)   
-             
+            
+#%% Split fvtk files
+
+            
+            
+            
+            
+            
+
 #%%
 import matplotlib.pyplot as plt
 

@@ -240,36 +240,19 @@ def read_vtk(file, opt):
     reader.SetFileName(file)
     reader.ReadAllScalarsOn()
     reader.Update()
-    data = reader.GetOutput()
-    filt = vtk.vtkConnectivityFilter()
-
-    filt.SetInputData(data) # get the data from the MC alg.
-    filt.SetExtractionModeToLargestRegion()
-    #filt.ColorRegionsOn()
-    filt.Update()
-    data_filt = filt.GetOutput()
-
-    cleanPolyData = vtk.vtkCleanPolyData()
-    cleanPolyData.ToleranceIsAbsoluteOn()
-    cleanPolyData.SetAbsoluteTolerance(1.e-3)
-    cleanPolyData.SetInputData(data_filt)
-    cleanPolyData.Update()
+     
+    if hasattr(opt, 'tps') and opt.num_aug > 1 and random() > (1-opt.tps):
+        points, faces = volumetric_spline_augmentation(reader.GetOutput())
+    else:
+        points = np.array( reader.GetOutput().GetPoints().GetData() )
+        #face_labels = np.array( pd.GetOutput().GetCellData().GetScalars() )
+          
+        poly = dsa.WrapDataObject(reader.GetOutput()).Polygons
+        faces = np.reshape(poly,(-1,4))[:,1:4]
     
-    pd = cleanPolyData
-    if opt.is_train and opt.num_aug > 1 and random() > (1-opt.tps):
-        pd = volumetric_spline_augmentation(pd)
-        
-    points = np.array( pd.GetOutput().GetPoints().GetData() )
-    #face_labels = np.array( pd.GetOutput().GetCellData().GetScalars() )
-      
-    poly = dsa.WrapDataObject(pd.GetOutput()).Polygons
-    poly_mat = np.reshape(poly,(-1,4))[:,1:4]
-    
-    return points, poly_mat
+    return points, faces
 
 def volumetric_spline_augmentation(pd):
-    
-
     # Get bounding box
     bounds = pd.GetBounds();
     x_min = bounds[0]
@@ -286,7 +269,6 @@ def volumetric_spline_augmentation(pd):
 
     # Reference points
     # Here just corners of the bounding box
-    # TODO: make more points
     n = 6
     i = 0
     p1 = vtk.vtkPoints()
