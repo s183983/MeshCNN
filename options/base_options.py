@@ -34,6 +34,7 @@ class BaseOptions:
         self.parser.add_argument('--seed', type=int, help='if specified, uses seed')
         # visualization params
         self.parser.add_argument('--weights', type=float, nargs='+', default=[1,1], help='weights for classes')
+        self.parser.add_argument('--prior', type=float, default=0, help='prior for penalizing different neighbours')
         self.parser.add_argument('--test_file', type=str, default='0', help='for test of a single file')
         self.parser.add_argument('--export_folder', type=str, default='', help='exports intermediate collapses to this folder')
         #

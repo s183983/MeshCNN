@@ -34,6 +34,7 @@ class ClassifierModel:
                                               self.gpu_ids, opt.arch, opt.init_type, opt.init_gain)
         self.net.train(self.is_train)
         self.criterion = networks.define_loss(opt).to(self.device)
+        self.criterion2 = networks.MRF_loss().to(self.device)
 
         if self.is_train:
             self.optimizer = torch.optim.Adam(self.net.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999))
@@ -59,7 +60,10 @@ class ClassifierModel:
         return out
 
     def backward(self, out):
-        self.loss = self.criterion(out, self.labels) + self.opt.prior * self.MRF_loss(out)
+        one_ring = torch.from_numpy(self.mesh[0].gemm_edges)
+        self.CE_loss = self.criterion(out, self.labels)
+        self.prior_loss = self.opt.prior * self.criterion2(out, self.labels, one_ring)
+        self.loss = self.CE_loss +self.prior_loss
         self.loss.backward()
 
     def optimize_parameters(self):
@@ -68,19 +72,7 @@ class ClassifierModel:
         self.backward(out)
         self.optimizer.step()
 
-    def MRF_loss(self, out):
-        loss = 0
-        out = torch.nn.functional.softmax(out,dim=1)
-        
-        for im, mesh in enumerate(self.mesh):
-            N0 = out[im,:,mesh.gemm_edges[:,0]]
-            N1 = out[im,:,mesh.gemm_edges[:,1]]
-            N2 = out[im,:,mesh.gemm_edges[:,2]]
-            N3 = out[im,:,mesh.gemm_edges[:,3]]
-            one_ring = torch.stack((N0,N1,N2,N3))
-            loss += ((one_ring-out[im,:,:mesh.edges_count])**2).sum()/mesh.edges_count
-            
-        return loss
+    
                     
                 
         
@@ -118,7 +110,7 @@ class ClassifierModel:
         lr = self.optimizer.param_groups[0]['lr']
         print('learning rate = %.7f' % lr)
 
-    def test(self):
+    def test(self, loss_bool=False):
         """tests model
         returns: number correct and total number
         """
@@ -133,7 +125,11 @@ class ClassifierModel:
             self.export_segmentation(pred_class.cpu())
             correct = self.get_accuracy(pred_class, label_class)
             dice = self.dice_score(pred_class, label_class)
-        return correct, len(label_class), dice
+            if loss_bool:
+                loss = self.get_loss(out)
+                return correct, len(label_class), dice, loss
+            else:
+                return correct, len(label_class), dice
 
     def get_accuracy(self, pred, labels):
         """computes accuracy for classification / segmentation """
@@ -159,7 +155,12 @@ class ClassifierModel:
             
         return dice_sum/len(self.mesh)
     
-        
+    def get_loss(self, out):
+        one_ring = torch.from_numpy(self.mesh[0].gemm_edges)
+        CE_loss = self.criterion(out, self.labels)
+        prior_loss = self.opt.prior * self.criterion2(out, self.labels, one_ring)
+        loss = CE_loss + prior_loss
+        return loss
 
     def export_segmentation(self, pred_seg):
         if self.opt.dataset_mode == 'segmentation':

@@ -121,6 +121,22 @@ def define_loss(opt):
         loss = torch.nn.CrossEntropyLoss(weight=CLASS_WEIGHTS, ignore_index=-1)
     return loss
 
+class MRF_loss(nn.Module):
+    def __init__(self):
+        super(MRF_loss, self).__init__()
+        
+    def forward(self, out: torch.Tensor, labels: torch.Tensor, one_ring: torch.Tensor) -> torch.Tensor:
+        out = torch.nn.functional.softmax(out,dim=1)
+        count = len(one_ring)
+        N0 = out[0,:,one_ring[:,0]]
+        N1 = out[0,:,one_ring[:,1]]
+        N2 = out[0,:,one_ring[:,2]]
+        N3 = out[0,:,one_ring[:,3]]
+        N_hood = torch.stack((N0,N1,N2,N3))
+        
+        loss = ((N_hood-labels[0,:count])**2).sum()/count
+            
+        return loss
 ##############################################################################
 # Classes For Classification / Segmentation Networks
 ##############################################################################

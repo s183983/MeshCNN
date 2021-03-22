@@ -1,5 +1,6 @@
 import os
 import time
+import numpy as np
 
 try:
     from tensorboardX import SummaryWriter
@@ -46,7 +47,35 @@ class Writer:
         iters = i + (epoch - 1) * n
         if self.display:
             self.display.add_scalar('data/train_loss', loss, iters)
-
+            
+    def save_losses(self, loss_mat, CE_loss, prior_loss,epoch):
+        file  =os.path.join(self.save_dir,'train_losses.npz')
+        if epoch==1:
+            loss_load = loss_mat
+            CE_load = CE_loss
+            prior_load = prior_loss
+        else:
+            loaded = np.load(file)
+            loss_load = loaded['loss']
+            CE_load = loaded['CE_loss']
+            prior_load = loaded['prior_loss']
+            loss_load = np.vstack(( loss_load, np.asarray(loss_mat) ))
+            CE_load = np.vstack(( CE_load, np.asarray(CE_loss) ))
+            prior_load = np.vstack(( prior_load, np.asarray(prior_loss) ))
+        
+        np.savez(file, loss = loss_load, CE_loss = CE_load, prior_loss = prior_load)
+    
+    def save_val_loss(self, loss, epoch):
+        file = os.path.join(self.save_dir,'val_loss.npz')
+        if epoch==1:
+            loss_load = loss
+        else:
+            loaded = np.load(file)
+            loss_load = loaded['val_loss']
+            loss_load = np.vstack(( loss_load, np.asarray(loss) ))
+        
+        np.savez(file, val_loss = loss_load)
+        
     def plot_model_wts(self, model, epoch):
         if self.opt.is_train and self.display:
             for name, param in model.net.named_parameters():
