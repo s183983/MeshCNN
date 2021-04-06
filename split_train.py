@@ -8,7 +8,7 @@ import numpy as np
 import vtk
 from vtk.numpy_interface import dataset_adapter as dsa
 import os
-
+#%%
 for i, f_name in enumerate(os.listdir('datasets/LAA_segmentation/')):
     if f_name.endswith('.vtk'):
         print(f_name)
@@ -180,43 +180,69 @@ for i, f_name in enumerate(os.listdir('datasets/LAA_segmentation/')):
             
             
             
+#%% et point count after split
+points_count = []
+train_idx = []
+folder1 = 'datasets/LAA_segmentation/train/'
+folder2 = 'datasets/LAA_segmentation/test/'
+folder3 = 'datasets/LAA_segmentation/final_test/'
+folders = [folder1, folder2, folder3]
+for j,folder in enumerate(folders):
+    for i, f_name in enumerate(os.listdir(folder)):
+        if f_name.endswith('.vtk'):
+            print(f_name)
+            filename = folder + f_name
+                    
+            reader = vtk.vtkPolyDataReader()
+            reader.SetFileName(filename)
+            reader.ReadAllScalarsOn()
+            reader.Update()
             
-
+            points = np.array( reader.GetOutput().GetPoints().GetData() )
+            points_count.append(len(points))
+            train_idx.append(j)
+points_count = np.asarray(points_count)
+train_idx = np.asarray(train_idx)
 #%%
-import matplotlib.pyplot as plt
 
+import matplotlib.pyplot as plt
+plt.figure(figsize=(20,4))
+plt.subplot(1,3,1)
+bin_list = np.arange(min(points_count), max(points_count) + 2000, 2000)
 x = points_count[(0==train_idx).nonzero()]
 print(x.mean())
-n, bins, patches = plt.hist(x=x, bins=5, color='#0504aa',
+n, bins, patches = plt.hist(x=x, bins=bin_list, color='#0504aa',
                             alpha=0.7, rwidth=0.85)
 plt.grid(axis='y', alpha=0.75)
-plt.xlabel('No of points in meshes')
-plt.ylabel('Frequency')
-plt.title('Distributions of no points in train set')
+plt.xlabel('No of vertices in meshes', fontsize=12)
+plt.ylabel('Frequency', fontsize=12)
+plt.title('Distributions of no vertices in train set', fontsize=18)
 maxfreq = n.max()
 # Set a clean upper y-axis limit.
 plt.ylim(ymax=np.ceil(maxfreq / 10) * 10 if maxfreq % 10 else maxfreq + 10)
-#%%
+
+plt.subplot(1,3,2)
 x = points_count[(1==train_idx).nonzero()]
 print(x.mean())
-n, bins, patches = plt.hist(x=x, bins=5, color='#0504aa',
+n, bins, patches = plt.hist(x=x, bins=bin_list, color='#0504aa',
                             alpha=0.7, rwidth=0.85)
 plt.grid(axis='y', alpha=0.75)
-plt.xlabel('No of points in meshes')
-plt.ylabel('Frequency')
-plt.title('Distributions of no points in validation set')
+plt.xlabel('No of vertices in meshes', fontsize=12)
+plt.ylabel('Frequency', fontsize=12)
+plt.title('Distributions of no vertices in validation set', fontsize=18)
 maxfreq = n.max()
 # Set a clean upper y-axis limit.
 plt.ylim(ymax=np.ceil(maxfreq / 10) * 10 if maxfreq % 10 else maxfreq + 10)
-#%%
+
+plt.subplot(1,3,3)
 x = points_count[(2==train_idx).nonzero()]
 print(x.mean())
-n, bins, patches = plt.hist(x=x, bins=5, color='#0504aa',
+n, bins, patches = plt.hist(x=x, bins=bin_list, color='#0504aa',
                             alpha=0.7, rwidth=0.85)
 plt.grid(axis='y', alpha=0.75)
-plt.xlabel('No of points in meshes')
-plt.ylabel('Frequency')
-plt.title('Distributions of no points in test set')
-maxfreq = n.max()
+plt.xlabel('No of vertices in meshes', fontsize=12)
+plt.ylabel('Frequency', fontsize=12)
+plt.title('Distributions of no vertices in test set', fontsize=18)
+maxfreq = n.max()   
 # Set a clean upper y-axis limit.
 plt.ylim(ymax=np.ceil(maxfreq / 10) * 10 if maxfreq % 10 else maxfreq + 10)

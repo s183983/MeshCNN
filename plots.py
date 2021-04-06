@@ -9,24 +9,6 @@ import vtk
 from vtk.numpy_interface import dataset_adapter as dsa
 from models.layers.mesh_prepare import *
 
-filename = 'datasets/LAA_segmentation/0003.vtk'
-
-reader = vtk.vtkPolyDataReader()
-reader.SetFileName(filename)
-reader.ReadAllScalarsOn()
-reader.Update()
-data = reader.GetOutput()
-
-points = np.array( reader.GetOutput().GetPoints().GetData() )
-
-print(data.GetCellData().GetScalars())
-
-label = np.array( data.GetCellData().GetScalars() )
-
-numpy_array_of_points = dsa.WrapDataObject(data).Points
-poly = dsa.WrapDataObject(data).Polygons
-poly_mat = np.reshape(poly,(-1,4))[:,1:4]
-
 #%%
 points_mat = []
 label_mat = []
@@ -67,18 +49,19 @@ for i in range(len(points_mat)):
     no_faces[i] = (len(faces_mat[i]))
     label_dist[i] = label_mat[i].sum()/len(label_mat[i])
 #%%
+plt.subplot(1,3,1)
 # An "interface" to matplotlib.axes.Axes.hist() method
 n, bins, patches = plt.hist(x=no_points, bins='auto', color='#0504aa',
                             alpha=0.7, rwidth=0.85)
 plt.grid(axis='y', alpha=0.75)
-plt.xlabel('No of points in meshes')
+plt.xlabel('No of vertices in meshes')
 plt.ylabel('Frequency')
 plt.title('Distributions of no points')
 maxfreq = n.max()
 # Set a clean upper y-axis limit.
 plt.ylim(ymax=np.ceil(maxfreq / 10) * 10 if maxfreq % 10 else maxfreq + 10)
-#%%
-# An "interface" to matplotlib.axes.Axes.hist() method
+
+plt.subplot(1,3,2)
 n, bins, patches = plt.hist(x=no_faces, bins='auto', color='#0504aa',
                             alpha=0.7, rwidth=0.85)
 plt.grid(axis='y', alpha=0.75)
@@ -88,7 +71,8 @@ plt.title('Distributions of no faces')
 maxfreq = n.max()
 # Set a clean upper y-axis limit.
 plt.ylim(ymax=np.ceil(maxfreq / 10) * 10 if maxfreq % 10 else maxfreq + 10)
-#%%
+
+plt.subplot(1,3,3)
 n, bins, patches = plt.hist(x=label_dist, bins='auto', color='#0504aa',
                             alpha=0.7, rwidth=0.85)
 plt.grid(axis='y', alpha=0.75)

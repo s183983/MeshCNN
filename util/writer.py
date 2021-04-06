@@ -15,6 +15,7 @@ class Writer:
         self.save_dir = os.path.join(opt.checkpoints_dir, opt.name)
         self.log_name = os.path.join(self.save_dir, 'loss_log.txt')
         self.testacc_log = os.path.join(self.save_dir, 'testacc_log.txt')
+        self.final_test_file = os.path.join(self.save_dir, 'final_test_acc.txt')
         self.start_logs()
         self.nexamples = 0
         self.ncorrect = 0
@@ -75,6 +76,13 @@ class Writer:
             loss_load = np.vstack(( loss_load, np.asarray(loss) ))
         
         np.savez(file, val_loss = loss_load)
+        
+    def save_test_acc(self, data, ncorrect, nexamples, dice):
+        _, name = os.path.split(data['mesh'][0].filename)
+        message = 'File: {}, Accuracy: [{:.4} %], Dice score: [{:.4} %]' \
+            .format( name, ncorrect/nexamples*100, dice*100)
+        with open(self.final_test_file, "a") as log_file:
+            log_file.write('%s\n' % message)
         
     def plot_model_wts(self, model, epoch):
         if self.opt.is_train and self.display:

@@ -9,11 +9,15 @@ import vtk
 from random import random
 import numpy as np
 from vtk.numpy_interface import dataset_adapter as dsa
+import matplotlib.pyplot as plt
 
 
-def volumetric_spline_augmentation():
-    out_name = 'datasets/DataAug/0236aug.vtk'
-    file_name = 'datasets/LAA_segmentation/0236.vtk'
+def volumetric_spline_augmentation(file, save_name = '', save_points = 0):
+    #file = '0212.vtk'
+    file_name = 'C:/Users/lowes/OneDrive/Skrivebord/DTU/6_Semester/Bachelor/LAA_segmentation/'+file
+    path = 'C:/Users/lowes/OneDrive/Skrivebord/DTU/6_Semester/Bachelor/Augmented_data/'
+    out_name = path + file.split('.')[0] + 'aug' + save_name + '.vtk'
+    
 
     pd_in = vtk.vtkPolyDataReader()
     pd_in.SetFileName(file_name)
@@ -38,7 +42,7 @@ def volumetric_spline_augmentation():
     # Reference points
     # Here just corners of the bounding box
     # TODO: make more points
-    n = 6
+    n = 3
     i = 0
     p1 = vtk.vtkPoints()
     p1.SetNumberOfPoints(n*n*n)
@@ -68,7 +72,7 @@ def volumetric_spline_augmentation():
     p2.DeepCopy(p1)
 
     # Displace the points in a random direction
-    displacement_length = scale * 0.04 #change parameter around a bit
+    displacement_length = scale * 0.05 #change parameter around a bit
     for i in range(p2.GetNumberOfPoints()):
         p = list(p2.GetPoint(i))
         for j in range(3):
@@ -78,7 +82,7 @@ def volumetric_spline_augmentation():
     transform = vtk.vtkThinPlateSplineTransform()
     transform.SetSourceLandmarks(p1)
     transform.SetTargetLandmarks(p2)
-    transform.SetBasisToR()
+    transform.SetBasisToR2LogR()
     transform.Update()
 
     transform_filter = vtk.vtkTransformPolyDataFilter()
@@ -108,8 +112,35 @@ def volumetric_spline_augmentation():
                 f.write("\n") 
             f.write("%d " % face_labels[j])
     print('done writing')
-    
-    
+    if save_points:
+        fig = plt.figure()
+        ax = fig.add_subplot(projection='3d')
+        points = np.asarray(p1.GetData())
+        ax.scatter(points[:,0],points[:,1],points[:,2], linewidth = 8)
+        #plt.show()
+                
+        #fig = plt.figure()
+        #ax = fig.add_subplot(projection='3d')
+        points = np.asarray(p2.GetData())
+        ax.scatter(points[:,0],points[:,1],points[:,2],linewidth = 8, marker='x')
+        plt.show()
+        
+        
+        
+        
+        vs1 = np.array(p1.GetData())
+        out_p1 = path + file.split('.')[0] + '_p1.vtk'
+        with open(out_p1, 'w+') as f:
+            f.write("# vtk DataFile Version 4.2 \nvtk output \nASCII \n \nDATASET POLYDATA \nPOINTS %d float \n" % len(vs1))
+            for vi, v in enumerate(vs1):
+                f.write("%f %f %f\n" % (v[0], v[1], v[2]))
+                vs = np.array(p1.GetData())
+        vs2 = np.array(p2.GetData())
+        out_p2 = path + file.split('.')[0] + '_p2.vtk'
+        with open(out_p2, 'w+') as f:
+            f.write("# vtk DataFile Version 4.2 \nvtk output \nASCII \n \nDATASET POLYDATA \nPOINTS %d float \n" % len(vs2))
+            for vi, v in enumerate(vs2):
+                f.write("%f %f %f\n" % (v[0], v[1], v[2]))
     
     '''
     writer = vtk.vtkPolyDataWriter()
@@ -117,8 +148,17 @@ def volumetric_spline_augmentation():
     writer.SetInputConnection(transform_filter.GetOutputPort())
     writer.Write()
     print('done writing')
-    '''
+ '''
+ 
+#volumetric_spline_augmentation('0003.vtk', save_points = 1)
+ 
 
-volumetric_spline_augmentation()
+file_names = ['0019.vtk', '0022.vtk', '0088.vtk', '0180.vtk']
+for file in file_names:
+    volumetric_spline_augmentation(file)
 
-
+'''
+save_names = ['0','1','2','3','4']
+for name in save_names:
+    volumetric_spline_augmentation('0236.vtk', save_name=name)
+'''
