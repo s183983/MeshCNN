@@ -32,10 +32,14 @@ class BaseOptions:
         self.parser.add_argument('--checkpoints_dir', type=str, default='./checkpoints', help='models are saved here')
         self.parser.add_argument('--serial_batches', action='store_true', help='if true, takes meshes in order, otherwise takes them randomly')
         self.parser.add_argument('--seed', type=int, help='if specified, uses seed')
-        # visualization params
+        
+        # our added params
+        self.parser.add_argument('--nl_block', default=0, type=int, help='Adds a non-local block to the network')
         self.parser.add_argument('--weights', type=float, nargs='+', default=[1,1], help='weights for classes')
         self.parser.add_argument('--prior', type=float, default=0, help='prior for penalizing different neighbours')
         self.parser.add_argument('--test_file', type=str, default='0', help='for test of a single file')
+        
+        # visualization params
         self.parser.add_argument('--export_folder', type=str, default='', help='exports intermediate collapses to this folder')
         #
         self.initialized = True

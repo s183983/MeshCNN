@@ -8,6 +8,8 @@ import torch.nn.functional as F
 from models.layers.mesh_pool import MeshPool
 from models.layers.mesh_unpool import MeshUnpool
 
+from models.layers.non_local_block import NLBlock
+
 
 ###############################################################################
 # Helper Functions
@@ -105,7 +107,7 @@ def define_classifier(input_nc, ncf, ninput_edges, nclasses, opt, gpu_ids, arch,
         up_convs = ncf[::-1] + [nclasses]
         pool_res = [ninput_edges] + opt.pool_res
         net = MeshEncoderDecoder(pool_res, down_convs, up_convs, blocks=opt.resblocks,
-                                 transfer_data=True)
+                                 transfer_data=True, nl_block = opt.nl_block)
     else:
         raise NotImplementedError('Encoder model name [%s] is not recognized' % arch)
     return init_net(net, init_type, init_gain, gpu_ids)
@@ -202,10 +204,10 @@ class MResConv(nn.Module):
 class MeshEncoderDecoder(nn.Module):
     """Network for fully-convolutional tasks (segmentation)
     """
-    def __init__(self, pools, down_convs, up_convs, blocks=0, transfer_data=True):
+    def __init__(self, pools, down_convs, up_convs, blocks=0, transfer_data=True, nl_block = 0):
         super(MeshEncoderDecoder, self).__init__()
         self.transfer_data = transfer_data
-        self.encoder = MeshEncoder(pools, down_convs, blocks=blocks)
+        self.encoder = MeshEncoder(pools, down_convs, blocks=blocks, nl_block = nl_block)
         unrolls = pools[:-1].copy()
         unrolls.reverse()
         self.decoder = MeshDecoder(unrolls, up_convs, blocks=blocks, transfer_data=transfer_data)
@@ -219,10 +221,11 @@ class MeshEncoderDecoder(nn.Module):
         return self.forward(x, meshes)
 
 class DownConv(nn.Module):
-    def __init__(self, in_channels, out_channels, blocks=0, pool=0):
+    def __init__(self, in_channels, out_channels, blocks=0, pool=0, nl_block = 0):
         super(DownConv, self).__init__()
         self.bn = []
         self.pool = None
+        self.nl_block = None
         self.conv1 = MeshConv(in_channels, out_channels)
         self.conv2 = []
         for _ in range(blocks):
@@ -233,6 +236,9 @@ class DownConv(nn.Module):
             self.bn = nn.ModuleList(self.bn)
         if pool:
             self.pool = MeshPool(pool)
+        if nl_block:
+            # Add non-local block before last downpool
+            self.nl_block = NLBlock(out_channels, block_type = nl_block)
 
     def __call__(self, x):
         return self.forward(x)
@@ -244,6 +250,9 @@ class DownConv(nn.Module):
             x1 = self.bn[0](x1)
         x1 = F.relu(x1)
         x2 = x1
+        if self.nl_block:
+            x2 = x2.squeeze(3)
+            x2 = self.nl_block(x2, meshes)
         for idx, conv in enumerate(self.conv2):
             x2 = conv(x1, meshes)
             if self.bn:
@@ -253,6 +262,7 @@ class DownConv(nn.Module):
             x1 = x2
         x2 = x2.squeeze(3)
         before_pool = None
+        
         if self.pool:
             before_pool = x2
             x2 = self.pool(x2, meshes)
@@ -311,7 +321,7 @@ class UpConv(nn.Module):
 
 
 class MeshEncoder(nn.Module):
-    def __init__(self, pools, convs, fcs=None, blocks=0, global_pool=None):
+    def __init__(self, pools, convs, fcs=None, blocks=0, global_pool=None, nl_block=0):
         super(MeshEncoder, self).__init__()
         self.fcs = None
         self.convs = []
@@ -320,7 +330,11 @@ class MeshEncoder(nn.Module):
                 pool = pools[i + 1]
             else:
                 pool = 0
-            self.convs.append(DownConv(convs[i], convs[i + 1], blocks=blocks, pool=pool))
+            # Add nl-block after last downpool
+            if i == (len(convs)-2) and nl_block:
+                self.convs.append(DownConv(convs[i], convs[i + 1], blocks=blocks, pool=pool, nl_block=nl_block))
+            else:
+                self.convs.append(DownConv(convs[i], convs[i + 1], blocks=blocks, pool=pool))
         self.global_pool = None
         if fcs is not None:
             self.fcs = []
