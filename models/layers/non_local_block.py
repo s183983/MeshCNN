@@ -57,7 +57,8 @@ class NLBlock(nn.Module):
         elif dimension == 2:
             conv_nd = nn.Conv2d
             max_pool_layer = nn.MaxPool2d(kernel_size=(2, 2))
-            self.lsat_pool = nn.MaxPool2d(kernel_size=(1,5))
+            self.last_conv = nn.Conv2d(in_channels=in_channels, out_channels=in_channels, kernel_size=(1, 5), bias=True)
+
             bn = nn.BatchNorm2d
         else:
             conv_nd = nn.Conv1d
@@ -104,8 +105,10 @@ class NLBlock(nn.Module):
         args
             x: (N, C, T, H, W) for dimension=3; (N, C, H, W) for dimension 2; (N, C, T) for dimension 1
         """
-
+        
         batch_size = x.size(0)
+        
+        x_r = x
         
         if self.dimension == 2:
             G = torch.cat([self.pad_gemm(i, x.shape[2], x.device) for i in mesh], 0)
@@ -155,11 +158,13 @@ class NLBlock(nn.Module):
         y = y.view(batch_size, self.inter_channels, *x.size()[2:])
         
         W_y = self.W_z(y)
-        # residual connection
-        z = W_y + x
+        
         if self.dimension == 2:
-            z = self.last_pool(z)
-            z = z.squeeze(3)
+            W_y = self.last_conv(W_y)
+            W_y = W_y.squeeze(3)
+
+        # residual connection
+        z = W_y + x_r
         z = z.unsqueeze(3)
         return z
     

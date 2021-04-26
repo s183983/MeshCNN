@@ -325,13 +325,18 @@ class MeshEncoder(nn.Module):
         super(MeshEncoder, self).__init__()
         self.fcs = None
         self.convs = []
+        if nl_block > 10: #place before last downpool
+            nl_place = 3
+            nl_block -= 10
+        else: #place after last downpool
+            nl_place = 2
         for i in range(len(convs) - 1):
             if i + 1 < len(pools):
                 pool = pools[i + 1]
             else:
                 pool = 0
-            # Add nl-block after last downpool
-            if i == (len(convs)-2) and nl_block:
+            # Add nl-block after downpool
+            if i == (len(convs)-nl_place) and nl_block:
                 self.convs.append(DownConv(convs[i], convs[i + 1], blocks=blocks, pool=pool, nl_block=nl_block))
             else:
                 self.convs.append(DownConv(convs[i], convs[i + 1], blocks=blocks, pool=pool))
