@@ -155,6 +155,7 @@ class ClassifierModel:
             
         return dice_sum/len(self.mesh)
     
+    
     def get_loss(self, out):
         one_ring = torch.from_numpy(self.mesh[0].gemm_edges)
         CE_loss = self.criterion(out, self.labels)

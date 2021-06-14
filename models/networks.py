@@ -326,7 +326,16 @@ class MeshEncoder(nn.Module):
         super(MeshEncoder, self).__init__()
         self.fcs = None
         self.convs = []
-        if nl_block > 20: #place both before and after last downpool
+        if nl_block > 50: #place both before second last and last pool
+            nl_place = np.array([2,3,4])
+            nl_block -= 50
+        elif nl_block > 40: #place both before second last and last pool
+            nl_place = np.array([3,4])
+            nl_block -= 40
+        elif nl_block > 30: #place before second last pool
+            nl_place = np.array([4])
+            nl_block -= 30
+        elif nl_block > 20: #place both before and after last downpool
             nl_place = np.array([2,3])
             nl_block -= 20
         elif nl_block > 10: #place before last downpool

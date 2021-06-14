@@ -66,5 +66,4 @@ if __name__ == '__main__':
         if epoch % opt.run_test_freq == 0:
             acc = run_test(epoch)
             writer.plot_acc(acc, epoch)
-    np.savez(os.path.join(opt.checkpoints_dir, opt.name)+ '/loss', loss=loss_mat)
     writer.close()

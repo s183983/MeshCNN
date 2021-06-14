@@ -24,6 +24,9 @@ class Writer:
             self.display = SummaryWriter(comment=opt.name)
         else:
             self.display = None
+        if not opt.is_train:
+            with open(self.final_test_file, "a") as log_file:
+                log_file.write('%s\n' % opt.phase)
 
     def start_logs(self):
         """ creates test / train log files """

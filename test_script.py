@@ -22,7 +22,8 @@ def run_test(epoch=-1):
         dice_sum += dice
         writer.update_counter(ncorrect, nexamples)
     dice_sum /= len(dataset)
-    writer.print_acc(epoch, writer.acc,dice_sum)
+    f1_sum /= len(dataset)
+    writer.print_acc(epoch, writer.acc, dice_sum)
     writer.save_val_loss(loss_mat,epoch)
     return writer.acc
 

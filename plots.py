@@ -13,11 +13,11 @@ from models.layers.mesh_prepare import *
 points_mat = []
 label_mat = []
 faces_mat = []
-
+folder = 'C:\\Users\\lowes\\OneDrive\\Skrivebord\\DTU\\6_Semester\\Bachelor\\data_LAA\\data'
 import os 
-for f_name in os.listdir('datasets/LAA_segmentation/'):
+for f_name in os.listdir(folder):
     if f_name.endswith('.vtk'):
-        filename = 'datasets/LAA_segmentation/' + f_name
+        filename = os.path.join(folder, f_name)
         
         reader = vtk.vtkPolyDataReader()
         reader.SetFileName(filename)
@@ -49,14 +49,15 @@ for i in range(len(points_mat)):
     no_faces[i] = (len(faces_mat[i]))
     label_dist[i] = label_mat[i].sum()/len(label_mat[i])
 #%%
+plt.figure(figsize=(20,8))
 plt.subplot(1,3,1)
 # An "interface" to matplotlib.axes.Axes.hist() method
 n, bins, patches = plt.hist(x=no_points, bins='auto', color='#0504aa',
                             alpha=0.7, rwidth=0.85)
 plt.grid(axis='y', alpha=0.75)
-plt.xlabel('No of vertices in meshes')
-plt.ylabel('Frequency')
-plt.title('Distributions of no points')
+plt.xlabel('No of vertices in meshes',fontsize=15)
+plt.ylabel('Frequency',fontsize=15)
+plt.title('Distributions of no points', fontsize=18)
 maxfreq = n.max()
 # Set a clean upper y-axis limit.
 plt.ylim(ymax=np.ceil(maxfreq / 10) * 10 if maxfreq % 10 else maxfreq + 10)
@@ -65,20 +66,20 @@ plt.subplot(1,3,2)
 n, bins, patches = plt.hist(x=no_faces, bins='auto', color='#0504aa',
                             alpha=0.7, rwidth=0.85)
 plt.grid(axis='y', alpha=0.75)
-plt.xlabel('No of faces in meshes')
-plt.ylabel('Frequency')
-plt.title('Distributions of no faces')
+plt.xlabel('No of faces in meshes',fontsize=15)
+plt.ylabel('Frequency',fontsize=15)
+plt.title('Distributions of no faces',fontsize=18)
 maxfreq = n.max()
 # Set a clean upper y-axis limit.
 plt.ylim(ymax=np.ceil(maxfreq / 10) * 10 if maxfreq % 10 else maxfreq + 10)
 
 plt.subplot(1,3,3)
-n, bins, patches = plt.hist(x=label_dist, bins='auto', color='#0504aa',
+n, bins, patches = plt.hist(x=label_dist*100, bins='auto', color='#0504aa',
                             alpha=0.7, rwidth=0.85)
 plt.grid(axis='y', alpha=0.75)
-plt.xlabel('LAA labels as % of data')
-plt.ylabel('Frequency')
-plt.title('Distributions of LAA labels')
+plt.xlabel('LAA labels as % of data',fontsize=15)
+plt.ylabel('Frequency',fontsize=15)
+plt.title('Distributions of LAA labels',fontsize=18)
 maxfreq = n.max()
 # Set a clean upper y-axis limit.
 plt.ylim(ymax=np.ceil(maxfreq / 10) * 10 if maxfreq % 10 else maxfreq + 10)
